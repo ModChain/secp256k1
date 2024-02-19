@@ -8,8 +8,8 @@ package schnorr
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/crypto/blake256"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/ModChain/blake256"
+	"github.com/ModChain/secp256k1"
 )
 
 const (
