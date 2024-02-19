@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/ModChain/secp256k1"
 )
 
 // hexToModNScalar converts the passed hex string into a ModNScalar and will
