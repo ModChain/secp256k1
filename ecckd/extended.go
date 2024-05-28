@@ -319,8 +319,28 @@ func (k *ExtendedKey) pubKeyBytes() []byte {
 
 // ToECDSA returns the key data as ecdsa.PrivateKey
 func (k *ExtendedKey) ToECDSA() *ecdsa.PrivateKey {
+	if !k.IsPrivate() {
+		panic("key is not a private key")
+	}
 	privKey := secp256k1.PrivKeyFromBytes(k.KeyData)
 	return privKey.ToECDSA()
+}
+
+// ToPublicECDSA returns a ecdsa.PublicKey for the current key
+func (k *ExtendedKey) ToPublicECDSA() (*ecdsa.PublicKey, error) {
+	if k.IsPrivate() {
+		// private → public
+		pkx, pky := k.curve.ScalarBaseMult(k.KeyData)
+		return &ecdsa.PublicKey{Curve: k.curve, X: pkx, Y: pky}, nil
+	}
+
+	// this is a bit more tricky since the key is compressed
+	// For now, only support secp256k1
+	sk, err := secp256k1.ParsePubKey(k.KeyData)
+	if err != nil {
+		return nil, err
+	}
+	return sk.ToECDSA(), nil
 }
 
 func (k *ExtendedKey) UnmarshalBinary(data []byte) error {
