@@ -3,7 +3,10 @@ package ecckd
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ModChain/base58"
@@ -17,6 +20,7 @@ type ExtendedKey struct {
 	ChildNumber uint32 // ser32(i) for i in xi = xpar/i, with xi the key being serialized. (0x00000000 if master key)
 	KeyData     []byte // 33 bytes, the public key or private key data (serP(K) for public keys, 0x00 || ser256(k) for private keys)
 	ChainCode   []byte // 32 bytes, the chain code
+	curve       elliptic.Curve
 }
 
 // FromBitcoinSeed returns a master node for a bitcoin wallet
@@ -37,6 +41,7 @@ func FromSeed(seed, masterSecret []byte) (*ExtendedKey, error) {
 		ChildNumber: 0,
 		KeyData:     key,
 		ChainCode:   chainCode,
+		curve:       secp256k1.S256(),
 	}
 	return res, nil
 }
@@ -49,6 +54,45 @@ func FromString(str string) (*ExtendedKey, error) {
 
 	e := &ExtendedKey{}
 	return e, e.UnmarshalBinary(bin)
+}
+
+// FromPublicKey will initialize an ExtendedKey with the provided ecdsa.PublicKey.
+func FromPublicKey(pubkey *ecdsa.PublicKey, chainCode []byte) (*ExtendedKey, error) {
+	if len(chainCode) != 32 {
+		return nil, errors.New("invalid chainCode length")
+	}
+
+	res := &ExtendedKey{
+		Version:     BitcoinMainnetPublic, // we don't care that much about version since it's not used in the calculations
+		Fingerprint: [4]byte{0, 0, 0, 0},
+		ChildNumber: 0,
+		Depth:       0,
+		KeyData:     serializeCompressedEcdsa(pubkey),
+		ChainCode:   chainCode,
+		curve:       pubkey.Curve,
+	}
+	return res, nil
+}
+
+var (
+	bigZero = big.NewInt(0)
+	bigOne  = big.NewInt(1)
+)
+
+func isEven(n *big.Int) bool {
+	return new(big.Int).And(n, bigOne).Cmp(bigZero) == 0
+}
+
+func serializeCompressedEcdsa(k *ecdsa.PublicKey) []byte {
+	format := secp256k1.PubKeyFormatCompressedEven
+	if !isEven(k.Y) {
+		format = secp256k1.PubKeyFormatCompressedOdd
+	}
+
+	b := make([]byte, 33)
+	b[0] = format
+	k.X.FillBytes(b[1:])
+	return b
 }
 
 func (k *ExtendedKey) IsPrivate() bool {
@@ -68,14 +112,20 @@ func (k *ExtendedKey) IsPrivate() bool {
 // 3) Public extended key -> Non-hardened child public extended key
 // 4) Public extended key -> Hardened child public extended key (INVALID!)
 func (k *ExtendedKey) Child(i uint32) (*ExtendedKey, error) {
+	_, ek, err := k.ChildWithIL(i)
+	return ek, err
+}
+
+// ChildWithIL derives extended key at a given index i, and returns IL (I left) too.
+func (k *ExtendedKey) ChildWithIL(i uint32) (*big.Int, *ExtendedKey, error) {
 	if k.Depth == 0xff {
-		return nil, ErrMaxDepthExceeded
+		return nil, nil, ErrMaxDepthExceeded
 	}
 
 	// A hardened child may not be created from a public extended key (Case #4).
 	isChildHardened := i&HardenedBit == HardenedBit
 	if !k.IsPrivate() && isChildHardened {
-		return nil, ErrDerivingHardenedFromPublic
+		return nil, nil, ErrDerivingHardenedFromPublic
 	}
 
 	keyLen := 33
@@ -89,15 +139,20 @@ func (k *ExtendedKey) Child(i uint32) (*ExtendedKey, error) {
 	}
 	binary.BigEndian.PutUint32(seed[keyLen:], i)
 
+	// I = HMAC-SHA512(Key = chainCode, Data=data)
+	// secretKey = IL, chainCode = IR
 	secretKey, chainCode, err := hmacCKD(seed, k.ChainCode)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	il := new(big.Int).SetBytes(secretKey)
 
 	child := &ExtendedKey{
 		ChainCode:   chainCode,
 		Depth:       k.Depth + 1,
 		ChildNumber: i,
+		curve:       k.curve,
 		// The fingerprint for the derived child is the first 4 bytes of parent's
 	}
 	copy(child.Fingerprint[:], rmd160sha256(k.pubKeyBytes()))
@@ -107,7 +162,7 @@ func (k *ExtendedKey) Child(i uint32) (*ExtendedKey, error) {
 		parentKeyBigInt := new(big.Int).SetBytes(k.KeyData)
 		keyBigInt := new(big.Int).SetBytes(secretKey)
 		keyBigInt.Add(keyBigInt, parentKeyBigInt)
-		keyBigInt.Mod(keyBigInt, secp256k1.S256().N)
+		keyBigInt.Mod(keyBigInt, k.curve.Params().N)
 
 		// Make sure that child.KeyData is 32 bytes of data even if the value is represented with less bytes.
 		// When we derive a child of this key, we call splitHMAC that does a sha512 of a seed that is:
@@ -130,39 +185,66 @@ func (k *ExtendedKey) Child(i uint32) (*ExtendedKey, error) {
 		// Case #3: childKey = serP(point(parse256(IL)) + parentKey)
 
 		// Calculate the corresponding intermediate public key for intermediate private key.
-		keyx, keyy := secp256k1.S256().ScalarBaseMult(secretKey)
+		keyx, keyy := k.curve.ScalarBaseMult(secretKey)
 		if keyx.Sign() == 0 || keyy.Sign() == 0 {
-			return nil, ErrInvalidKey
+			return nil, nil, ErrInvalidKey
 		}
 
 		// Convert the serialized compressed parent public key into X and Y coordinates
 		// so it can be added to the intermediate public key.
 		pubKey, err := secp256k1.ParsePubKey(k.KeyData)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// childKey = serP(point(parse256(IL)) + parentKey)
-		childX, childY := secp256k1.S256().Add(keyx, keyy, pubKey.X(), pubKey.Y())
+		childX, childY := k.curve.Add(keyx, keyy, pubKey.X(), pubKey.Y())
 		pk := secp256k1.NewPublicKey(asFV(childX), asFV(childY))
 		child.KeyData = pk.SerializeCompressed()
 		child.Version = k.Version.ToPublic()
 	}
-	return child, nil
+	return il, child, nil
 }
 
 // Derive returns a derived child key at a given path
 func (k *ExtendedKey) Derive(path []uint32) (*ExtendedKey, error) {
 	var err error
+
 	extKey := k
 	for _, i := range path {
 		extKey, err = extKey.Child(i)
 		if err != nil {
-			return nil, ErrDerivingChild
+			return nil, fmt.Errorf("error deriving child: %w", err)
 		}
 	}
 
 	return extKey, nil
+}
+
+// DeriveWithIL returns a derived child key at a given path
+func (k *ExtendedKey) DeriveWithIL(path []uint32) (*big.Int, *ExtendedKey, error) {
+	var err error
+	var il *big.Int
+	mod := k.curve.Params().N
+
+	extKey := k
+	for _, i := range path {
+		var curIl *big.Int
+
+		curIl, extKey, err = extKey.ChildWithIL(i)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error deriving child: %w", err)
+		}
+
+		if il == nil {
+			il = curIl
+		} else {
+			il = il.Add(il, curIl)
+			il = il.Mod(il, mod)
+		}
+	}
+
+	return il, extKey, nil
 }
 
 // Public returns a new extended public key from a give extended private key.
@@ -182,6 +264,7 @@ func (k *ExtendedKey) Public() (*ExtendedKey, error) {
 		Fingerprint: k.Fingerprint,
 		Depth:       k.Depth,
 		ChildNumber: k.ChildNumber,
+		curve:       k.curve,
 	}, nil
 }
 
@@ -230,9 +313,8 @@ func (k *ExtendedKey) pubKeyBytes() []byte {
 		return k.KeyData
 	}
 
-	pkx, pky := secp256k1.S256().ScalarBaseMult(k.KeyData)
-	pubKey := secp256k1.NewPublicKey(asFV(pkx), asFV(pky))
-	return pubKey.SerializeCompressed()
+	pkx, pky := k.curve.ScalarBaseMult(k.KeyData)
+	return serializeCompressedEcdsa(&ecdsa.PublicKey{Curve: k.curve, X: pkx, Y: pky})
 }
 
 // ToECDSA returns the key data as ecdsa.PrivateKey
@@ -298,5 +380,6 @@ func (k *ExtendedKey) UnmarshalBinary(data []byte) error {
 	k.Fingerprint = fingerprint
 	k.Depth = depth
 	k.ChildNumber = childNumber
+	k.curve = secp256k1.S256()
 	return nil
 }
