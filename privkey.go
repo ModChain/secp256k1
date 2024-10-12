@@ -6,6 +6,7 @@
 package secp256k1
 
 import (
+	"crypto"
 	cryptorand "crypto/rand"
 	"io"
 )
@@ -90,6 +91,11 @@ func (p *PrivateKey) PubKey() *PublicKey {
 	ScalarBaseMultNonConst(&p.Key, &result)
 	result.ToAffine()
 	return NewPublicKey(&result.X, &result.Y)
+}
+
+// Public returns the same value as PubKey, but complies with crypto.Signer interface
+func (p *PrivateKey) Public() crypto.PublicKey {
+	return p.PubKey()
 }
 
 // Zero manually clears the memory associated with the private key.  This can be

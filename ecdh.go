@@ -19,3 +19,9 @@ func GenerateSharedSecret(privkey *PrivateKey, pubkey *PublicKey) []byte {
 	xBytes := result.X.Bytes()
 	return xBytes[:]
 }
+
+// ECDH generates a shared secret and is an alias to GenerateSharedSecret, however
+// by being part of the private key it is closer to go's own ecdh api.
+func (privkey *PrivateKey) ECDH(remote *PublicKey) ([]byte, error) {
+	return GenerateSharedSecret(privkey, remote), nil
+}
