@@ -12,9 +12,9 @@ functions for working with public and private secp256k1 keys.  See
 https://www.secg.org/sec2-v2.pdf for details on the standard.
 
 In addition, sub packages are provided to produce, verify, parse, and serialize
-ECDSA signatures and EC-Schnorr-DCRv0 (a custom Schnorr-based signature scheme
-specific to Decred) signatures.  See the README.md files in the relevant sub
-packages for more details about those aspects.
+EC-Schnorr-DCRv0 (a custom Schnorr-based signature scheme specific to Decred)
+signatures.  See the README.md files in the relevant sub packages for more
+details about those aspects.
 
 An overview of the features provided by this package are as follows:
 
