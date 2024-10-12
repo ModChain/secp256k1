@@ -21,6 +21,29 @@ func TestErrorKindStringer(t *testing.T) {
 		{ErrPubKeyYTooBig, "ErrPubKeyYTooBig"},
 		{ErrPubKeyNotOnCurve, "ErrPubKeyNotOnCurve"},
 		{ErrPubKeyMismatchedOddness, "ErrPubKeyMismatchedOddness"},
+		{ErrSigTooShort, "ErrSigTooShort"},
+		{ErrSigTooLong, "ErrSigTooLong"},
+		{ErrSigInvalidSeqID, "ErrSigInvalidSeqID"},
+		{ErrSigInvalidDataLen, "ErrSigInvalidDataLen"},
+		{ErrSigMissingSTypeID, "ErrSigMissingSTypeID"},
+		{ErrSigMissingSLen, "ErrSigMissingSLen"},
+		{ErrSigInvalidSLen, "ErrSigInvalidSLen"},
+		{ErrSigInvalidRIntID, "ErrSigInvalidRIntID"},
+		{ErrSigZeroRLen, "ErrSigZeroRLen"},
+		{ErrSigNegativeR, "ErrSigNegativeR"},
+		{ErrSigTooMuchRPadding, "ErrSigTooMuchRPadding"},
+		{ErrSigRIsZero, "ErrSigRIsZero"},
+		{ErrSigRTooBig, "ErrSigRTooBig"},
+		{ErrSigInvalidSIntID, "ErrSigInvalidSIntID"},
+		{ErrSigZeroSLen, "ErrSigZeroSLen"},
+		{ErrSigNegativeS, "ErrSigNegativeS"},
+		{ErrSigTooMuchSPadding, "ErrSigTooMuchSPadding"},
+		{ErrSigSIsZero, "ErrSigSIsZero"},
+		{ErrSigSTooBig, "ErrSigSTooBig"},
+		{ErrSigInvalidLen, "ErrSigInvalidLen"},
+		{ErrSigInvalidRecoveryCode, "ErrSigInvalidRecoveryCode"},
+		{ErrSigOverflowsPrime, "ErrSigOverflowsPrime"},
+		{ErrPointNotOnCurve, "ErrPointNotOnCurve"},
 	}
 
 	for i, test := range tests {
@@ -105,6 +128,48 @@ func TestErrorKindIsAs(t *testing.T) {
 		target:    makeError(ErrPubKeyInvalidLen, ""),
 		wantMatch: false,
 		wantAs:    ErrPubKeyInvalidFormat,
+	}, {
+		name:      "ErrSigTooShort == ErrSigTooShort",
+		err:       ErrSigTooShort,
+		target:    ErrSigTooShort,
+		wantMatch: true,
+		wantAs:    ErrSigTooShort,
+	}, {
+		name:      "Error.ErrSigTooShort == ErrSigTooShort",
+		err:       signatureError(ErrSigTooShort, ""),
+		target:    ErrSigTooShort,
+		wantMatch: true,
+		wantAs:    ErrSigTooShort,
+	}, {
+		name:      "Error.ErrSigTooShort == Error.ErrSigTooShort",
+		err:       signatureError(ErrSigTooShort, ""),
+		target:    signatureError(ErrSigTooShort, ""),
+		wantMatch: true,
+		wantAs:    ErrSigTooShort,
+	}, {
+		name:      "ErrSigTooLong != ErrSigTooShort",
+		err:       ErrSigTooLong,
+		target:    ErrSigTooShort,
+		wantMatch: false,
+		wantAs:    ErrSigTooLong,
+	}, {
+		name:      "Error.ErrSigTooLong != ErrSigTooShort",
+		err:       signatureError(ErrSigTooLong, ""),
+		target:    ErrSigTooShort,
+		wantMatch: false,
+		wantAs:    ErrSigTooLong,
+	}, {
+		name:      "ErrSigTooLong != Error.ErrSigTooShort",
+		err:       ErrSigTooLong,
+		target:    signatureError(ErrSigTooShort, ""),
+		wantMatch: false,
+		wantAs:    ErrSigTooLong,
+	}, {
+		name:      "Error.ErrSigTooLong != Error.ErrSigTooShort",
+		err:       signatureError(ErrSigTooLong, ""),
+		target:    signatureError(ErrSigTooShort, ""),
+		wantMatch: false,
+		wantAs:    ErrSigTooLong,
 	}}
 
 	for _, test := range tests {
