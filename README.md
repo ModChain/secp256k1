@@ -41,35 +41,7 @@ packages in the standard library such as `crypto/tls`, `crypto/x509`, and
 the `ecdsa` sub package of this package instead since it is optimized
 specifically for secp256k1 and is significantly faster as a result.
 
-Although this package was primarily written for dcrd, it has intentionally been
-designed so it can be used as a standalone package for any projects needing to
-use optimized secp256k1 elliptic curve cryptography.
-
-Finally, a comprehensive suite of tests is provided to provide a high level of
-quality assurance.
-
-## Installation and Updating
-
-This package is part of the `github.com/ModChain/secp256k1` module.
-Use the standard go tooling for working with modules to incorporate it.
-
-## Examples
-
-* [Encryption](https://pkg.go.dev/github.com/ModChain/secp256k1#example-package-EncryptDecryptMessage)
-  Demonstrates encrypting and decrypting a message using a shared key derived
-  through ECDHE.
-
-## License
-
-Package secp256k1 is licensed under the [copyfree](http://copyfree.org) ISC
-License.
-
-ecdsa
-=====
-
-Package ecdsa provides secp256k1-optimized ECDSA signing and verification.
-
-This package provides data structures and functions necessary to produce and
+This package also provides data structures and functions necessary to produce and
 verify deterministic canonical signatures in accordance with RFC6979 and
 BIP0062, optimized specifically for the secp256k1 curve using the Elliptic Curve
 Digital Signature Algorithm (ECDSA), as defined in FIPS 186-3.  See
@@ -83,32 +55,24 @@ In addition, it supports a custom "compact" signature format which allows
 efficient recovery of the public key from a given valid signature and message
 hash combination.
 
-A comprehensive suite of tests is provided to ensure proper functionality.
-
-## ECDSA use in Decred
-
-At the time of this writing, ECDSA signatures are heavily used for proving coin
-ownership in Decred as the vast majority of transactions consist of what is
-effectively transferring ownership of coins to a public key associated with a
-private key only known to the recipient of the coins along with an encumbrance
-that requires an ECDSA signature that proves the new owner possesses the private
-key without actually revealing it.
-
-## Installation and Updating
-
-This package is part of the `github.com/decred/dcrd/dcrec/secp256k1/v4` module.
-Use the standard go tooling for working with modules to incorporate it.
+Finally, a comprehensive suite of tests is provided to provide a high level of
+quality assurance.
 
 ## Examples
 
-* [Sign Message](https://pkg.go.dev/github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa#example-package-SignMessage)  
+* [Encryption](https://pkg.go.dev/github.com/ModChain/secp256k1#example-package-EncryptDecryptMessage)
+  Demonstrates encrypting and decrypting a message using a shared key derived
+  through ECDHE.
+
+* [Sign Message](https://pkg.go.dev/github.com/ModChain/secp256k1#example-package-SignMessage)  
   Demonstrates signing a message with a secp256k1 private key that is first
   parsed from raw bytes and serializing the generated signature.
 
-* [Verify Signature](https://pkg.go.dev/github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa#example-Signature.Verify)  
+* [Verify Signature](https://pkg.go.dev/github.com/ModChain/secp256k1#example-Signature.Verify)  
   Demonstrates verifying a secp256k1 signature against a public key that is
   first parsed from raw bytes.  The signature is also parsed from raw bytes.
 
 ## License
 
-Package ecdsa is licensed under the [copyfree](http://copyfree.org) ISC License.
+Package secp256k1 is licensed under the [copyfree](http://copyfree.org) ISC
+License.
