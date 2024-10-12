@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package ecdsa
+package secp256k1
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 )
 
 // TestErrorKindStringer tests the stringized output for the ErrorKind type.
-func TestErrorKindStringer(t *testing.T) {
+func TestErrorKindStringer2(t *testing.T) {
 	tests := []struct {
 		in   ErrorKind
 		want string
@@ -50,7 +50,7 @@ func TestErrorKindStringer(t *testing.T) {
 }
 
 // TestError tests the error output for the Error type.
-func TestError(t *testing.T) {
+func TestError2(t *testing.T) {
 	tests := []struct {
 		in   Error
 		want string
@@ -73,7 +73,7 @@ func TestError(t *testing.T) {
 
 // TestErrorKindIsAs ensures both ErrorKind and Error can be identified as being
 // a specific error kind via errors.Is and unwrapped via errors.As.
-func TestErrorKindIsAs(t *testing.T) {
+func TestErrorKindIsAs2(t *testing.T) {
 	tests := []struct {
 		name      string
 		err       error

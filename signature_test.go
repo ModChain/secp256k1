@@ -3,31 +3,17 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package ecdsa
+package secp256k1
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ModChain/blake256"
-	"github.com/ModChain/secp256k1"
 )
-
-// hexToBytes converts the passed hex string into bytes and will panic if there
-// is an error.  This is only provided for the hard-coded constants so errors in
-// the source code can be detected. It will only (and must only) be called with
-// hard-coded values.
-func hexToBytes(s string) []byte {
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		panic("invalid hex in source file: " + s)
-	}
-	return b
-}
 
 // TestSignatureParsing ensures that signatures are properly parsed according
 // to DER rules.  The error paths are tested as well.
@@ -256,8 +242,8 @@ func TestSignatureSerialize(t *testing.T) {
 	}, {
 		"zero signature",
 		&Signature{
-			r: *new(secp256k1.ModNScalar).SetInt(0),
-			s: *new(secp256k1.ModNScalar).SetInt(0),
+			r: *new(ModNScalar).SetInt(0),
+			s: *new(ModNScalar).SetInt(0),
 		},
 		hexToBytes("3006020100020100"),
 	}}
@@ -497,7 +483,7 @@ func signTests(t *testing.T) []signTest {
 		if test.rfc6979 {
 			privKeyBytes := hexToBytes(test.key)
 			nonceBytes := hexToBytes(test.nonce)
-			calcNonce := secp256k1.NonceRFC6979(privKeyBytes, hash, nil, nil, 0)
+			calcNonce := NonceRFC6979(privKeyBytes, hash, nil, nil, 0)
 			calcNonceBytes := calcNonce.Bytes()
 			if !bytes.Equal(calcNonceBytes[:], nonceBytes) {
 				t.Errorf("%s: mismatched test nonce -- expected: %x, given: %x",
@@ -519,7 +505,7 @@ func TestSignAndVerify(t *testing.T) {
 
 	tests := signTests(t)
 	for _, test := range tests {
-		privKey := secp256k1.NewPrivateKey(hexToModNScalar(test.key))
+		privKey := NewPrivateKey(hexToModNScalar(test.key))
 		hash := hexToBytes(test.hash)
 		nonce := hexToModNScalar(test.nonce)
 		wantSigR := hexToModNScalar(test.wantSigR)
@@ -605,9 +591,9 @@ func TestSignAndVerifyRandom(t *testing.T) {
 		if _, err := rng.Read(buf[:]); err != nil {
 			t.Fatalf("failed to read random private key: %v", err)
 		}
-		var privKeyScalar secp256k1.ModNScalar
+		var privKeyScalar ModNScalar
 		privKeyScalar.SetBytes(&buf)
-		privKey := secp256k1.NewPrivateKey(&privKeyScalar)
+		privKey := NewPrivateKey(&privKeyScalar)
 
 		// Generate a random hash to sign.
 		var hash [32]byte
@@ -743,7 +729,7 @@ func TestVerifyFailures(t *testing.T) {
 		sig := NewSignature(r, s)
 
 		// Ensure the verification is NOT successful.
-		pubKey := secp256k1.NewPrivateKey(privKey).PubKey()
+		pubKey := NewPrivateKey(privKey).PubKey()
 		if sig.Verify(hash, pubKey) {
 			t.Errorf("%s: unexpected success for invalid signature: %x",
 				test.name, sig.Serialize())
@@ -795,7 +781,7 @@ func TestSignAndRecoverCompact(t *testing.T) {
 		}
 
 		// Parse test data.
-		privKey := secp256k1.NewPrivateKey(hexToModNScalar(test.key))
+		privKey := NewPrivateKey(hexToModNScalar(test.key))
 		pubKey := privKey.PubKey()
 		hash := hexToBytes(test.hash)
 		wantSig := hexToBytes("00" + test.wantSigR + test.wantSigS)
@@ -1030,9 +1016,9 @@ func TestSignAndRecoverCompactRandom(t *testing.T) {
 		if _, err := rng.Read(buf[:]); err != nil {
 			t.Fatalf("failed to read random private key: %v", err)
 		}
-		var privKeyScalar secp256k1.ModNScalar
+		var privKeyScalar ModNScalar
 		privKeyScalar.SetBytes(&buf)
-		privKey := secp256k1.NewPrivateKey(&privKeyScalar)
+		privKey := NewPrivateKey(&privKeyScalar)
 		wantPubKey := privKey.PubKey()
 
 		// Generate a random hash to sign.

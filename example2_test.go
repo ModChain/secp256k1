@@ -3,7 +3,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package ecdsa_test
+package secp256k1_test
 
 import (
 	"encoding/hex"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/ModChain/blake256"
 	"github.com/ModChain/secp256k1"
-	"github.com/ModChain/secp256k1/ecdsa"
 )
 
 // This example demonstrates signing a message with a secp256k1 private key that
@@ -29,7 +28,7 @@ func ExampleSign() {
 	// Sign a message using the private key.
 	message := "test message"
 	messageHash := blake256.Sum256([]byte(message))
-	signature := ecdsa.Sign(privKey, messageHash[:])
+	signature := secp256k1.Sign(privKey, messageHash[:])
 
 	// Serialize and display the signature.
 	fmt.Printf("Serialized Signature: %x\n", signature.Serialize())
@@ -69,7 +68,7 @@ func ExampleSignature_Verify() {
 		fmt.Println(err)
 		return
 	}
-	signature, err := ecdsa.ParseDERSignature(sigBytes)
+	signature, err := secp256k1.ParseDERSignature(sigBytes)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -39,4 +39,4 @@ field of the type asserted ecdsa.Error while still providing rich error messages
 with contextual information.  See ErrorKind in the package documentation for a
 full list.
 */
-package ecdsa
+package secp256k1
