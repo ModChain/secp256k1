@@ -43,17 +43,22 @@ However, in the case of ECDSA, it is highly recommended to use the ecdsa sub
 package of this package instead since it is optimized specifically for secp256k1
 and is significantly faster as a result.
 
-Although this package was primarily written for dcrd, it has intentionally been
-designed so it can be used as a standalone package for any projects needing to
-use optimized secp256k1 elliptic curve cryptography.
+This package also provides data structures and functions necessary to produce and
+verify deterministic canonical signatures in accordance with RFC6979 and
+BIP0062, optimized specifically for the secp256k1 curve using the Elliptic Curve
+Digital Signature Algorithm (ECDSA), as defined in FIPS 186-3.  See
+https://www.secg.org/sec2-v2.pdf for details on the secp256k1 standard.
 
+It also provides functions to parse and serialize the ECDSA signatures with the
+more strict Distinguished Encoding Rules (DER) of ISO/IEC 8825-1 and some
+additional restrictions specific to secp256k1.
+
+In addition, it supports a custom "compact" signature format which allows
+efficient recovery of the public key from a given valid signature and message
+hash combination.
+
+A comprehensive suite of tests is provided to ensure proper functionality.
 Finally, a comprehensive suite of tests is provided to provide a high level of
 quality assurance.
-
-# Use of secp256k1 in Decred
-
-At the time of this writing, the primary public key cryptography in widespread
-use on the Decred network used to secure coins is based on elliptic curves
-defined by the secp256k1 domain parameters.
 */
 package secp256k1
