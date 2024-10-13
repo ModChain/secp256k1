@@ -46,11 +46,18 @@ const (
 type Signature struct {
 	r ModNScalar
 	s ModNScalar
+	v byte // recovery code, or 0xff if the object was instanciated with NewSignature
 }
 
 // NewSignature instantiates a new signature given some r and s values.
 func NewSignature(r, s *ModNScalar) *Signature {
-	return &Signature{*r, *s}
+	return &Signature{*r, *s, 0xff}
+}
+
+// NewSignatureWithRecoveryCode instantiates a new signature given some r and s values and a
+// recovery code.
+func NewSignatureWithRecoveryCode(r, s *ModNScalar, v byte) *Signature {
+	return &Signature{*r, *s, v}
 }
 
 // R returns the r value of the signature.
@@ -61,6 +68,14 @@ func (sig *Signature) R() ModNScalar {
 // S returns the s value of the signature.
 func (sig *Signature) S() ModNScalar {
 	return sig.s
+}
+
+// RecoveryCode returns the recovery byte of the signature that can be used to determine the original signing public key.
+func (sig *Signature) RecoveryCode() byte {
+	if sig.v == 0xff {
+		panic("attempting to fetch recovery code from a signature not including it")
+	}
+	return sig.v
 }
 
 // Serialize returns the ECDSA signature in the Distinguished Encoding Rules
@@ -155,6 +170,25 @@ func modNScalarToField(v *ModNScalar) FieldVal {
 	var fv FieldVal
 	fv.SetBytes(&buf)
 	return fv
+}
+
+// BruteforceRecoveryCode will compute what the recovery code is based on the PublicKey and message
+// rather than knowing what the code was. The process is very similar to Verify but doesn't go
+// as far since we assume the signature is valid.
+func (sig *Signature) BruteforceRecoveryCode(hash []byte, pubKey *PublicKey) bool {
+	for i := byte(0); i < 4; i++ {
+		sig.v = i
+		pub2, err := sig.RecoverPublicKey(hash)
+		if err != nil {
+			continue
+		}
+		if pubKey.IsEqual(pub2) {
+			return true
+		}
+	}
+	// couldn't find the right public key, possibly because this signature is not a valid signature for this hash & pubKey
+	sig.v = 0xff
+	return false
 }
 
 // Verify returns whether or not the signature is valid for the provided hash
@@ -544,7 +578,7 @@ func ParseDERSignature(sig []byte) (*Signature, error) {
 // signing logic.  It differs in that it accepts a nonce to use when signing and
 // may not successfully produce a valid signature for the given nonce.  It is
 // primarily separated for testing purposes.
-func sign(privKey, nonce *ModNScalar, hash []byte) (*Signature, byte, bool) {
+func sign(privKey, nonce *ModNScalar, hash []byte) (*Signature, bool) {
 	// The algorithm for producing an ECDSA signature is given as algorithm 4.29
 	// in [GECC].
 	//
@@ -594,7 +628,7 @@ func sign(privKey, nonce *ModNScalar, hash []byte) (*Signature, byte, bool) {
 	// Repeat from step 1 if r = 0
 	r, overflow := fieldToModNScalar(&kG.X)
 	if r.IsZero() {
-		return nil, 0, false
+		return nil, false
 	}
 
 	// Since the secp256k1 curve has a cofactor of 1, when recovering a
@@ -637,7 +671,7 @@ func sign(privKey, nonce *ModNScalar, hash []byte) (*Signature, byte, bool) {
 	kinv := new(ModNScalar).InverseValNonConst(k)
 	s := new(ModNScalar).Mul2(privKey, &r).Add(&e).Mul(kinv)
 	if s.IsZero() {
-		return nil, 0, false
+		return nil, false
 	}
 	if s.IsOverHalfOrder() {
 		s.Negate()
@@ -652,13 +686,13 @@ func sign(privKey, nonce *ModNScalar, hash []byte) (*Signature, byte, bool) {
 	// Step 6.
 	//
 	// Return (r,s)
-	return NewSignature(&r, s), pubKeyRecoveryCode, true
+	return &Signature{r, *s, pubKeyRecoveryCode}, true
 }
 
 // signRFC6979 generates a deterministic ECDSA signature according to RFC 6979
 // and BIP0062 and returns it along with an additional public key recovery code
 // for efficiently recovering the public key from the signature.
-func signRFC6979(privKey *PrivateKey, hash []byte) (*Signature, byte) {
+func signRFC6979(privKey *PrivateKey, hash []byte) *Signature {
 	// The algorithm for producing an ECDSA signature is given as algorithm 4.29
 	// in [GECC].
 	//
@@ -702,13 +736,13 @@ func signRFC6979(privKey *PrivateKey, hash []byte) (*Signature, byte) {
 		k := NonceRFC6979(privKeyBytes[:], hash, nil, nil, iteration)
 
 		// Steps 2-6.
-		sig, pubKeyRecoveryCode, success := sign(privKeyScalar, k, hash)
+		sig, success := sign(privKeyScalar, k, hash)
 		k.Zero()
 		if !success {
 			continue
 		}
 
-		return sig, pubKeyRecoveryCode
+		return sig
 	}
 }
 
@@ -718,8 +752,7 @@ func signRFC6979(privKey *PrivateKey, hash []byte) (*Signature, byte) {
 // key yield the same signature) and canonical in accordance with RFC6979 and
 // BIP0062.
 func Sign(key *PrivateKey, hash []byte) *Signature {
-	signature, _ := signRFC6979(key, hash)
-	return signature
+	return signRFC6979(key, hash)
 }
 
 const (
@@ -764,8 +797,8 @@ const (
 func SignCompact(key *PrivateKey, hash []byte, isCompressedKey bool) []byte {
 	// Create the signature and associated pubkey recovery code and calculate
 	// the compact signature recovery code.
-	sig, pubKeyRecoveryCode := signRFC6979(key, hash)
-	compactSigRecoveryCode := compactSigMagicOffset + pubKeyRecoveryCode
+	sig := signRFC6979(key, hash)
+	compactSigRecoveryCode := compactSigMagicOffset + sig.v
 	if isCompressedKey {
 		compactSigRecoveryCode += compactSigCompPubKey
 	}
@@ -893,15 +926,28 @@ func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
 		return nil, false, signatureError(ErrSigSIsZero, str)
 	}
 
+	sig := &Signature{r, s, pubKeyRecoveryCode}
+
+	pk, err := sig.RecoverPublicKey(hash)
+
+	return pk, wasCompressed, err
+}
+
+// RecoverPublicKey recovers the public key
+func (sig *Signature) RecoverPublicKey(hash []byte) (*PublicKey, error) {
+	if sig.v == 0xff {
+		panic("cannot recover public key without recovery code")
+	}
+
 	// Step 2.
 	//
 	// Convert r to integer mod P.
-	fieldR := modNScalarToField(&r)
+	fieldR := modNScalarToField(&sig.r)
 
 	// Step 3.
 	//
 	// If pubkey recovery code overflow bit is set:
-	if pubKeyRecoveryCode&pubKeyRecoveryCodeOverflowBit != 0 {
+	if sig.v&pubKeyRecoveryCodeOverflowBit != 0 {
 		// Step 3.1.
 		//
 		// Fail if r + N >= P
@@ -912,7 +958,7 @@ func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
 		// coordinate of a random point on the curve.
 		if fieldR.IsGtOrEqPrimeMinusOrder() {
 			str := "invalid signature: signature R + N >= P"
-			return nil, false, signatureError(ErrSigOverflowsPrime, str)
+			return nil, signatureError(ErrSigOverflowsPrime, str)
 		}
 
 		// Step 3.2.
@@ -930,11 +976,11 @@ func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
 	// The signature must be invalid if the calculation fails because the X
 	// coord originally came from a random point on the curve which means there
 	// must be a Y coord that satisfies the equation for a valid signature.
-	oddY := pubKeyRecoveryCode&pubKeyRecoveryCodeOddnessBit != 0
+	oddY := sig.v&pubKeyRecoveryCodeOddnessBit != 0
 	var y FieldVal
 	if valid := DecompressY(&fieldR, oddY, &y); !valid {
 		str := "invalid signature: not for a valid curve point"
-		return nil, false, signatureError(ErrPointNotOnCurve, str)
+		return nil, signatureError(ErrPointNotOnCurve, str)
 	}
 
 	// Step 5.
@@ -954,14 +1000,14 @@ func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
 	// Step 7.
 	//
 	// w = r^-1 mod N
-	w := new(ModNScalar).InverseValNonConst(&r)
+	w := new(ModNScalar).InverseValNonConst(&sig.r)
 
 	// Step 8.
 	//
 	// u1 = -(e * w) mod N
 	// u2 = s * w mod N
 	u1 := new(ModNScalar).Mul2(&e, w).Negate()
-	u2 := new(ModNScalar).Mul2(&s, w)
+	u2 := new(ModNScalar).Mul2(&sig.s, w)
 
 	// Step 9.
 	//
@@ -979,11 +1025,11 @@ func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
 	// recovered pubkey is the point at infinity.
 	if (Q.X.IsZero() && Q.Y.IsZero()) || Q.Z.IsZero() {
 		str := "invalid signature: recovered pubkey is the point at infinity"
-		return nil, false, signatureError(ErrPointNotOnCurve, str)
+		return nil, signatureError(ErrPointNotOnCurve, str)
 	}
 
 	// Notice that the public key is in affine coordinates.
 	Q.ToAffine()
 	pubKey := NewPublicKey(&Q.X, &Q.Y)
-	return pubKey, wasCompressed, nil
+	return pubKey, nil
 }

@@ -31,12 +31,12 @@ func (privkey *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.Signe
 		opt = &SignOptions{}
 	}
 
-	sig, pubKeyRecoveryCode := signRFC6979(privkey, digest)
+	sig := signRFC6979(privkey, digest)
 
 	switch opt.Format {
 	case SignFormatCompact:
 		var b [65]byte
-		b[0] = pubKeyRecoveryCode
+		b[0] = sig.v
 		sig.r.PutBytesUnchecked(b[1:33])
 		sig.s.PutBytesUnchecked(b[33:65])
 		return b[:], nil
