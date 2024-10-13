@@ -22,7 +22,8 @@ func (s *SignOptions) HashFunc() crypto.Hash {
 }
 
 // Sign will sign the provided digest, returning the resulting signature. [SignOptions] can be used
-// to pass options.
+// to pass options. By default DER format will be used for signatures, however compact format can be
+// specified via opts.
 func (privkey *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	var opt *SignOptions
 	if o, ok := opts.(*SignOptions); ok {
@@ -35,11 +36,7 @@ func (privkey *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.Signe
 
 	switch opt.Format {
 	case SignFormatCompact:
-		var b [65]byte
-		b[0] = sig.v
-		sig.r.PutBytesUnchecked(b[1:33])
-		sig.s.PutBytesUnchecked(b[33:65])
-		return b[:], nil
+		return sig.ExportCompact(true, 0), nil
 	case SignFormatDER:
 		fallthrough
 	default:
