@@ -794,6 +794,8 @@ const (
 //
 // The compact sig recovery code is the value 27 + public key recovery code + 4
 // if the compact signature was created with a compressed public key.
+//
+// Deprecated: use [Sign] and [Signature.RecoveryCode] instead
 func SignCompact(key *PrivateKey, hash []byte, isCompressedKey bool) []byte {
 	// Create the signature and associated pubkey recovery code and calculate
 	// the compact signature recovery code.
@@ -815,6 +817,8 @@ func SignCompact(key *PrivateKey, hash []byte, isCompressedKey bool) []byte {
 // compact signature and message hash.  It first verifies the signature, and, if
 // the signature matches then the recovered public key will be returned as well
 // as a boolean indicating whether or not the original key was compressed.
+//
+// Deprecated: use Signature.RecoverPublicKey instead
 func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
 	// The following is very loosely based on the information and algorithm that
 	// describes recovering a public key from and ECDSA signature in section
