@@ -343,6 +343,11 @@ func (k *ExtendedKey) ToPublicECDSA() (*ecdsa.PublicKey, error) {
 	return sk.ToECDSA(), nil
 }
 
+// ToPublicSecp256k1 returns a [secp256k1.PublicKey] object for the current key
+func (k *ExtendedKey) ToPublicSecp256k1() (*secp256k1.PublicKey, error) {
+	return secp256k1.ParsePubKey(k.pubKeyBytes())
+}
+
 func (k *ExtendedKey) UnmarshalBinary(data []byte) error {
 	if len(data) != serializedKeyLen+4 {
 		return ErrInvalidKeyLen
