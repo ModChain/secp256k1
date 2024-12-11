@@ -628,6 +628,59 @@ func ParseDERSignature(sig []byte) (*Signature, error) {
 	return NewSignature(&r, &s), nil
 }
 
+func ParseCompactSignature(signature []byte) (*Signature, bool, error) {
+	// A compact signature consists of a recovery byte followed by the R and
+	// S components serialized as 32-byte big-endian values.
+	if len(signature) != compactSigSize {
+		str := fmt.Sprintf("malformed signature: wrong size: %d != %d",
+			len(signature), compactSigSize)
+		return nil, false, signatureError(ErrSigInvalidLen, str)
+	}
+
+	// Parse and validate the compact signature recovery code.
+	const (
+		minValidCode = compactSigMagicOffset
+		maxValidCode = compactSigMagicOffset + compactSigCompPubKey + 3
+	)
+	sigRecoveryCode := signature[0]
+	if sigRecoveryCode < minValidCode || sigRecoveryCode > maxValidCode {
+		str := fmt.Sprintf("invalid signature: public key recovery code %d is "+
+			"not in the valid range [%d, %d]", sigRecoveryCode, minValidCode,
+			maxValidCode)
+		return nil, false, signatureError(ErrSigInvalidRecoveryCode, str)
+	}
+	sigRecoveryCode -= compactSigMagicOffset
+	wasCompressed := sigRecoveryCode&compactSigCompPubKey != 0
+	pubKeyRecoveryCode := sigRecoveryCode & 3
+
+	// Step 1.
+	//
+	// Parse and validate the R and S signature components.
+	//
+	// Fail if r and s are not in [1, N-1].
+	var r, s ModNScalar
+	if overflow := r.SetByteSlice(signature[1:33]); overflow {
+		str := "invalid signature: R >= group order"
+		return nil, wasCompressed, signatureError(ErrSigRTooBig, str)
+	}
+	if r.IsZero() {
+		str := "invalid signature: R is 0"
+		return nil, wasCompressed, signatureError(ErrSigRIsZero, str)
+	}
+	if overflow := s.SetByteSlice(signature[33:]); overflow {
+		str := "invalid signature: S >= group order"
+		return nil, wasCompressed, signatureError(ErrSigSTooBig, str)
+	}
+	if s.IsZero() {
+		str := "invalid signature: S is 0"
+		return nil, wasCompressed, signatureError(ErrSigSIsZero, str)
+	}
+
+	sig := &Signature{r, s, pubKeyRecoveryCode}
+
+	return sig, wasCompressed, nil
+}
+
 // sign generates an ECDSA signature over the secp256k1 curve for the provided
 // hash (which should be the result of hashing a larger message) using the given
 // nonce and private key and returns it along with an additional public key
@@ -877,54 +930,10 @@ func SignCompact(key *PrivateKey, hash []byte, isCompressedKey bool) []byte {
 //
 // Deprecated: use Signature.RecoverPublicKey instead
 func RecoverCompact(signature, hash []byte) (*PublicKey, bool, error) {
-	// A compact signature consists of a recovery byte followed by the R and
-	// S components serialized as 32-byte big-endian values.
-	if len(signature) != compactSigSize {
-		str := fmt.Sprintf("malformed signature: wrong size: %d != %d",
-			len(signature), compactSigSize)
-		return nil, false, signatureError(ErrSigInvalidLen, str)
+	sig, wasCompressed, err := ParseCompactSignature(signature)
+	if err != nil {
+		return nil, false, err
 	}
-
-	// Parse and validate the compact signature recovery code.
-	const (
-		minValidCode = compactSigMagicOffset
-		maxValidCode = compactSigMagicOffset + compactSigCompPubKey + 3
-	)
-	sigRecoveryCode := signature[0]
-	if sigRecoveryCode < minValidCode || sigRecoveryCode > maxValidCode {
-		str := fmt.Sprintf("invalid signature: public key recovery code %d is "+
-			"not in the valid range [%d, %d]", sigRecoveryCode, minValidCode,
-			maxValidCode)
-		return nil, false, signatureError(ErrSigInvalidRecoveryCode, str)
-	}
-	sigRecoveryCode -= compactSigMagicOffset
-	wasCompressed := sigRecoveryCode&compactSigCompPubKey != 0
-	pubKeyRecoveryCode := sigRecoveryCode & 3
-
-	// Step 1.
-	//
-	// Parse and validate the R and S signature components.
-	//
-	// Fail if r and s are not in [1, N-1].
-	var r, s ModNScalar
-	if overflow := r.SetByteSlice(signature[1:33]); overflow {
-		str := "invalid signature: R >= group order"
-		return nil, false, signatureError(ErrSigRTooBig, str)
-	}
-	if r.IsZero() {
-		str := "invalid signature: R is 0"
-		return nil, false, signatureError(ErrSigRIsZero, str)
-	}
-	if overflow := s.SetByteSlice(signature[33:]); overflow {
-		str := "invalid signature: S >= group order"
-		return nil, false, signatureError(ErrSigSTooBig, str)
-	}
-	if s.IsZero() {
-		str := "invalid signature: S is 0"
-		return nil, false, signatureError(ErrSigSIsZero, str)
-	}
-
-	sig := &Signature{r, s, pubKeyRecoveryCode}
 
 	pk, err := sig.RecoverPublicKey(hash)
 
