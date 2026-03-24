@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ModChain/blake256"
-	"github.com/ModChain/secp256k1"
+	"github.com/KarpelesLab/secp256k1"
 )
 
 const (

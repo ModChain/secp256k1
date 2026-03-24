@@ -8,7 +8,7 @@ package schnorr
 import (
 	"fmt"
 
-	"github.com/ModChain/secp256k1"
+	"github.com/KarpelesLab/secp256k1"
 )
 
 // These constants define the lengths of serialized public keys.

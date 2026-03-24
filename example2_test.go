@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/ModChain/blake256"
-	"github.com/ModChain/secp256k1"
+	"github.com/KarpelesLab/secp256k1"
 )
 
 // This example demonstrates signing a message with a secp256k1 private key that

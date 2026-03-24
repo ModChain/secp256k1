@@ -2,9 +2,9 @@ secp256k1
 =========
 
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://godoc.org/github.com/ModChain/secp256k1?status.svg)](https://godoc.org/github.com/ModChain/secp256k1)
-[![Tests](https://github.com/ModChain/secp256k1/actions/workflows/test.yml/badge.svg)](https://github.com/ModChain/secp256k1/actions/workflows/test.yml)
-[![Coverage Status](https://coveralls.io/repos/github/ModChain/secp256k1/badge.svg?branch=master)](https://coveralls.io/github/ModChain/secp256k1?branch=master)
+[![GoDoc](https://godoc.org/github.com/KarpelesLab/secp256k1?status.svg)](https://godoc.org/github.com/KarpelesLab/secp256k1)
+[![Tests](https://github.com/KarpelesLab/secp256k1/actions/workflows/test.yml/badge.svg)](https://github.com/KarpelesLab/secp256k1/actions/workflows/test.yml)
+[![Coverage Status](https://coveralls.io/repos/github/KarpelesLab/secp256k1/badge.svg?branch=master)](https://coveralls.io/github/KarpelesLab/secp256k1?branch=master)
 
 Package secp256k1 implements optimized secp256k1 elliptic curve operations.
 
@@ -62,15 +62,15 @@ quality assurance.
 
 ## Examples
 
-* [Encryption](https://pkg.go.dev/github.com/ModChain/secp256k1#example-package-EncryptDecryptMessage)
+* [Encryption](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-package-EncryptDecryptMessage)
   Demonstrates encrypting and decrypting a message using a shared key derived
   through ECDHE.
 
-* [Sign Message](https://pkg.go.dev/github.com/ModChain/secp256k1#example-package-SignMessage)  
+* [Sign Message](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-package-SignMessage)  
   Demonstrates signing a message with a secp256k1 private key that is first
   parsed from raw bytes and serializing the generated signature.
 
-* [Verify Signature](https://pkg.go.dev/github.com/ModChain/secp256k1#example-Signature.Verify)  
+* [Verify Signature](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-Signature.Verify)  
   Demonstrates verifying a secp256k1 signature against a public key that is
   first parsed from raw bytes.  The signature is also parsed from raw bytes.
 

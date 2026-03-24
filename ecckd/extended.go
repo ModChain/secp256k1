@@ -10,7 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ModChain/base58"
-	"github.com/ModChain/secp256k1"
+	"github.com/KarpelesLab/secp256k1"
 )
 
 type ExtendedKey struct {

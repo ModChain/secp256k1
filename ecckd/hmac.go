@@ -6,7 +6,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ModChain/secp256k1"
+	"github.com/KarpelesLab/secp256k1"
 )
 
 var (

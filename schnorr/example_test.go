@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/ModChain/blake256"
-	"github.com/ModChain/secp256k1"
-	"github.com/ModChain/secp256k1/schnorr"
+	"github.com/KarpelesLab/secp256k1"
+	"github.com/KarpelesLab/secp256k1/schnorr"
 )
 
 // This example demonstrates signing a message with the EC-Schnorr-DCRv0 scheme
