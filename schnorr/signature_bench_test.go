@@ -67,7 +67,7 @@ func BenchmarkSign(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Sign(privKey, msgHash)
+		Sign(privKey, msgHash, "bench")
 	}
 }
 
@@ -85,7 +85,7 @@ func BenchmarkSigVerify(b *testing.B) {
 	msgHash := hexToBytes("c301ba9de5d6053caad9f5eb46523f007702add2c62fa39de03146a36b8026b7")
 
 	// Generate the signature.
-	sig, _ := Sign(privKey, msgHash)
+	sig, _ := Sign(privKey, msgHash, "bench")
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -105,7 +105,7 @@ func BenchmarkSigSerialize(b *testing.B) {
 	msgHash := hexToBytes("c301ba9de5d6053caad9f5eb46523f007702add2c62fa39de03146a36b8026b7")
 
 	// Generate the signature.
-	sig, _ := Sign(privKey, msgHash)
+	sig, _ := Sign(privKey, msgHash, "bench")
 
 	b.ReportAllocs()
 	b.ResetTimer()

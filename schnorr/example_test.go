@@ -29,7 +29,7 @@ func ExampleSign() {
 	// Sign a message using the private key.
 	message := "test message"
 	messageHash := blake256.Sum256([]byte(message))
-	signature, err := schnorr.Sign(privKey, messageHash[:])
+	signature, err := schnorr.Sign(privKey, messageHash[:], "EC-Schnorr-DCRv0")
 	if err != nil {
 		fmt.Println(err)
 		return

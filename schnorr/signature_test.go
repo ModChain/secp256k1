@@ -278,7 +278,7 @@ func TestSchnorrSignAndVerify(t *testing.T) {
 			privKeyBytes := hexToBytes(test.key)
 			nonceBytes := hexToBytes(test.nonce)
 			calcNonce := secp256k1.NonceRFC6979(privKeyBytes, hash,
-				DefaultExtraData[:], nil, 0)
+				schemeExtraData("EC-Schnorr-DCRv0"), nil, 0)
 			calcNonceBytes := calcNonce.Bytes()
 			if !bytes.Equal(calcNonceBytes[:], nonceBytes) {
 				t.Errorf("%s: mismatched test nonce -- expected: %x, given: %x",
@@ -345,7 +345,7 @@ func TestSchnorrSignAndVerifyRandom(t *testing.T) {
 		// Sign the hash with the private key and then ensure the produced
 		// signature is valid for the hash and public key associated with the
 		// private key.
-		sig, err := Sign(privKey, hash[:])
+		sig, err := Sign(privKey, hash[:], "test")
 		if err != nil {
 			t.Fatalf("failed to sign\nprivate key: %x\nhash: %x",
 				privKey.Serialize(), hash)

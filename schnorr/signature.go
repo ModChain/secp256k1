@@ -7,6 +7,7 @@ package schnorr
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/KarpelesLab/blake256"
 	"github.com/KarpelesLab/secp256k1"
@@ -20,20 +21,21 @@ const (
 	scalarSize = 32
 )
 
-var (
-	// DefaultExtraData is the default extra data fed to RFC6979 when generating
-	// the deterministic nonce for Schnorr signatures via [Sign].  This ensures
-	// the same nonce is not generated for the same message and key as for other
-	// signing algorithms such as ECDSA.
-	//
-	// It is equal to BLAKE-256([]byte("EC-Schnorr-DCRv0")).
-	DefaultExtraData = [32]byte{
-		0x0b, 0x75, 0xf9, 0x7b, 0x60, 0xe8, 0xa5, 0x76,
-		0x28, 0x76, 0xc0, 0x04, 0x82, 0x9e, 0xe9, 0xb9,
-		0x26, 0xfa, 0x6f, 0x0d, 0x2e, 0xea, 0xec, 0x3a,
-		0x4f, 0xd1, 0x44, 0x6a, 0x76, 0x83, 0x31, 0xcb,
+// schemeHashes caches the BLAKE-256 hashes of scheme names used for RFC6979
+// domain separation, so repeated Sign calls with the same scheme don't rehash.
+var schemeHashes sync.Map // map[string][32]byte
+
+// schemeExtraData returns the BLAKE-256 hash of the given scheme name, using
+// a cache to avoid recomputing.
+func schemeExtraData(scheme string) []byte {
+	if v, ok := schemeHashes.Load(scheme); ok {
+		h := v.([32]byte)
+		return h[:]
 	}
-)
+	h := blake256.Sum256([]byte(scheme))
+	schemeHashes.Store(scheme, h)
+	return h[:]
+}
 
 // Signature is a type representing a Schnorr signature.
 type Signature struct {
@@ -297,33 +299,18 @@ func schnorrSign(privKey, nonce *secp256k1.ModNScalar, hash []byte) (*Signature,
 // private key.  The produced signature is deterministic (same message and same
 // key yield the same signature) and canonical.
 //
-// It uses the default RFC6979 extra data for domain separation. Use
-// [SignWithExtraData] to specify custom extra data.
+// The scheme parameter is a string that identifies the signing scheme and is
+// used for RFC6979 domain separation.  It is hashed through BLAKE-256 and fed
+// as extra data to the nonce generation, ensuring that different schemes using
+// the same key and message produce different nonces.  The hash is cached so
+// repeated calls with the same scheme are efficient.
 //
 // Note that the current signing implementation has a few remaining variable
 // time aspects which make use of the private key and the generated nonce, which
 // can expose the signer to constant time attacks.  As a result, this function
 // should not be used in situations where there is the possibility of someone
 // having EM field/cache/etc access.
-func Sign(privKey *secp256k1.PrivateKey, hash []byte) (*Signature, error) {
-	return SignWithExtraData(privKey, hash, DefaultExtraData[:])
-}
-
-// SignWithExtraData generates a Schnorr signature over the secp256k1 curve for
-// the provided hash using the given private key and custom RFC6979 extra data
-// for domain separation.
-//
-// The extra data parameter is fed to RFC6979 during nonce generation to ensure
-// that different signing schemes using the same key and message produce
-// different nonces.  Passing nil uses no extra data.  Use [Sign] for the
-// default extra data.
-//
-// Note that the current signing implementation has a few remaining variable
-// time aspects which make use of the private key and the generated nonce, which
-// can expose the signer to constant time attacks.  As a result, this function
-// should not be used in situations where there is the possibility of someone
-// having EM field/cache/etc access.
-func SignWithExtraData(privKey *secp256k1.PrivateKey, hash []byte, extraData []byte) (*Signature, error) {
+func Sign(privKey *secp256k1.PrivateKey, hash []byte, scheme string) (*Signature, error) {
 	// Step 1.
 	//
 	// Fail if m is not 32 bytes
@@ -351,8 +338,8 @@ func SignWithExtraData(privKey *secp256k1.PrivateKey, hash []byte, extraData []b
 		// Use RFC6979 to generate a deterministic nonce k in [1, n-1]
 		// parameterized by the private key, message being signed, extra data
 		// that identifies the scheme, and an iteration count
-		k := secp256k1.NonceRFC6979(privKeyBytes[:], hash, extraData,
-			nil, iteration)
+		k := secp256k1.NonceRFC6979(privKeyBytes[:], hash,
+			schemeExtraData(scheme), nil, iteration)
 
 		// Steps 4-10.
 		sig, err := schnorrSign(privKeyScalar, k, hash)
