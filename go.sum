@@ -1,6 +1,6 @@
-github.com/ModChain/base58 v1.0.0 h1:QFm7L896+3n6ie8++cXRJM7S2k2GW/QohrfoxJExHKU=
-github.com/ModChain/base58 v1.0.0/go.mod h1:/FvdI5MHtcByk2Hn/3F1TuaqLjZ3R9MvDS1Z7fd6Qyc=
-github.com/ModChain/blake256 v1.0.0 h1:vb7gZysbj11mLbFt+8gziLeym2hoUSwBL/rsY/fx97M=
-github.com/ModChain/blake256 v1.0.0/go.mod h1:zMUHG1Ql6mII1oJSAm1U7sOaum+olU5fz2A1vYmWsO4=
+github.com/KarpelesLab/base58 v1.1.1 h1:TYKMYotRAygpr57rzMHYIriPTwRcNOV/QH5+wJ7wr2s=
+github.com/KarpelesLab/base58 v1.1.1/go.mod h1:QXHyIAfZqjiLAMC9MQTwvgFAlO0R5noDPr29bWYXhH4=
+github.com/KarpelesLab/blake256 v1.0.1 h1:nX2AhNgz2YRAlTdLlapEnOIyKxT7Le22OntKtDXr5v0=
+github.com/KarpelesLab/blake256 v1.0.1/go.mod h1:DgAiY5aPPMQGqb5zlsM2aLVwAaWoTbkLS6HISDb3gCA=
 golang.org/x/crypto v0.19.0 h1:ENy+Az/9Y1vSrlrvBSyna3PITt4tiZLf7sgCjZBX7Wo=
 golang.org/x/crypto v0.19.0/go.mod h1:Iy9bg/ha4yyC70EfRS8jz+B6ybOBKMaSxLj6P6oBDfU=

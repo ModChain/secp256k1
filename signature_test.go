@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ModChain/blake256"
+	"github.com/KarpelesLab/blake256"
 )
 
 // TestSignatureParsing ensures that signatures are properly parsed according

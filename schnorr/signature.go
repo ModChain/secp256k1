@@ -8,7 +8,7 @@ package schnorr
 import (
 	"fmt"
 
-	"github.com/ModChain/blake256"
+	"github.com/KarpelesLab/blake256"
 	"github.com/KarpelesLab/secp256k1"
 )
 

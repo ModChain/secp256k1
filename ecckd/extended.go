@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ModChain/base58"
+	"github.com/KarpelesLab/base58"
 	"github.com/KarpelesLab/secp256k1"
 )
 

@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ModChain/blake256"
+	"github.com/KarpelesLab/blake256"
 	"github.com/KarpelesLab/secp256k1"
 	"github.com/KarpelesLab/secp256k1/schnorr"
 )
