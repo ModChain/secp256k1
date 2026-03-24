@@ -2,23 +2,19 @@ secp256k1
 =========
 
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://godoc.org/github.com/KarpelesLab/secp256k1?status.svg)](https://godoc.org/github.com/KarpelesLab/secp256k1)
+[![GoDoc](https://pkg.go.dev/badge/github.com/KarpelesLab/secp256k1.svg)](https://pkg.go.dev/github.com/KarpelesLab/secp256k1)
 [![Tests](https://github.com/KarpelesLab/secp256k1/actions/workflows/test.yml/badge.svg)](https://github.com/KarpelesLab/secp256k1/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/github/KarpelesLab/secp256k1/badge.svg?branch=master)](https://coveralls.io/github/KarpelesLab/secp256k1?branch=master)
 
-Package secp256k1 implements optimized secp256k1 elliptic curve operations.
+Package secp256k1 implements optimized secp256k1 elliptic curve operations in
+pure Go.
 
-This package provides an optimized pure Go implementation of elliptic curve
-cryptography operations over the secp256k1 curve as well as data structures and
-functions for working with public and private secp256k1 keys.  See
-https://www.secg.org/sec2-v2.pdf for details on the standard.
+This package provides elliptic curve cryptography operations over the secp256k1
+curve as well as data structures and functions for working with public and
+private secp256k1 keys. See https://www.secg.org/sec2-v2.pdf for details on the
+standard.
 
-In addition, sub packages are provided to produce, verify, parse, and serialize
-EC-Schnorr-DCRv0 (a custom Schnorr-based signature scheme specific to Decred)
-signatures.  See the README.md files in the relevant sub packages for more
-details about those aspects.
-
-An overview of the features provided by this package are as follows:
+## Features
 
 - Private key generation, serialization, and parsing
 - Public key generation, serialization and parsing per ANSI X9.62-1998
@@ -35,30 +31,44 @@ An overview of the features provided by this package are as follows:
 - Point decompression from a given x coordinate
 - Nonce generation via RFC6979 with support for extra data and version
   information that can be used to prevent nonce reuse between signing algorithms
+- ECDSA signature creation, verification, parsing, and serialization
+  - Deterministic canonical signatures in accordance with RFC6979 and BIP0062
+  - DER serialization per ISO/IEC 8825-1
+  - Compact signature format with public key recovery
+- ECDH shared secret generation (RFC 5903)
 
 It also provides an implementation of the Go standard library `crypto/elliptic`
 `Curve` interface via the `S256` function so that it may be used with other
 packages in the standard library such as `crypto/tls`, `crypto/x509`, and
-`crypto/ecdsa`.  However, in the case of ECDSA, it is highly recommended to use
-the `ecdsa` sub package of this package instead since it is optimized
-specifically for secp256k1 and is significantly faster as a result.
+`crypto/ecdsa`.
 
-This package also provides data structures and functions necessary to produce and
-verify deterministic canonical signatures in accordance with RFC6979 and
-BIP0062, optimized specifically for the secp256k1 curve using the Elliptic Curve
-Digital Signature Algorithm (ECDSA), as defined in FIPS 186-3.  See
-https://www.secg.org/sec2-v2.pdf for details on the secp256k1 standard.
+## Sub Packages
 
-It also provides functions to parse and serialize the ECDSA signatures with the
-more strict Distinguished Encoding Rules (DER) of ISO/IEC 8825-1 and some
-additional restrictions specific to secp256k1.
+### schnorr
 
-In addition, it supports a custom "compact" signature format which allows
-efficient recovery of the public key from a given valid signature and message
-hash combination.
+Package `schnorr` provides Schnorr signing and verification using a custom
+scheme named EC-Schnorr-DCRv0, optimized for the secp256k1 curve. Schnorr
+signatures offer advantages over ECDSA including simpler aggregation, provable
+security under weaker assumptions, and support for faster batch verification.
 
-Finally, a comprehensive suite of tests is provided to provide a high level of
-quality assurance.
+```go
+import "github.com/KarpelesLab/secp256k1/schnorr"
+```
+
+### ecckd
+
+Package `ecckd` implements BIP32 hierarchical deterministic key derivation for
+secp256k1 extended keys. It supports:
+
+- Master key generation from seed (`FromBitcoinSeed`, `FromSeed`)
+- Hardened and non-hardened child key derivation
+- Public and private extended key management
+- Base58-encoded serialization and parsing (xpub/xprv format)
+- Conversion to standard `crypto/ecdsa` key types
+
+```go
+import "github.com/KarpelesLab/secp256k1/ecckd"
+```
 
 ## Examples
 
@@ -66,13 +76,13 @@ quality assurance.
   Demonstrates encrypting and decrypting a message using a shared key derived
   through ECDHE.
 
-* [Sign Message](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-package-SignMessage)  
+* [Sign Message](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-package-SignMessage)
   Demonstrates signing a message with a secp256k1 private key that is first
   parsed from raw bytes and serializing the generated signature.
 
-* [Verify Signature](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-Signature.Verify)  
+* [Verify Signature](https://pkg.go.dev/github.com/KarpelesLab/secp256k1#example-Signature.Verify)
   Demonstrates verifying a secp256k1 signature against a public key that is
-  first parsed from raw bytes.  The signature is also parsed from raw bytes.
+  first parsed from raw bytes. The signature is also parsed from raw bytes.
 
 ## License
 
