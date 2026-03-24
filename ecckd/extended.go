@@ -29,6 +29,12 @@ func FromBitcoinSeed(seed []byte) (*ExtendedKey, error) {
 }
 
 func FromSeed(seed, masterSecret []byte) (*ExtendedKey, error) {
+	// BIP32 requires a minimum seed length of 128 bits (16 bytes) and
+	// a maximum of 512 bits (64 bytes).
+	if len(seed) < 16 || len(seed) > 64 {
+		return nil, ErrInvalidSeed
+	}
+
 	key, chainCode, err := hmacCKD(seed, masterSecret)
 	if err != nil {
 		return nil, err
@@ -53,7 +59,10 @@ func FromString(str string) (*ExtendedKey, error) {
 	}
 
 	e := &ExtendedKey{}
-	return e, e.UnmarshalBinary(bin)
+	if err := e.UnmarshalBinary(bin); err != nil {
+		return nil, err
+	}
+	return e, nil
 }
 
 // FromPublicKey will initialize an ExtendedKey with the provided ecdsa.PublicKey.
@@ -164,6 +173,11 @@ func (k *ExtendedKey) ChildWithIL(i uint32) (*big.Int, *ExtendedKey, error) {
 		keyBigInt.Add(keyBigInt, parentKeyBigInt)
 		keyBigInt.Mod(keyBigInt, k.curve.Params().N)
 
+		// Per BIP32: if the resulting key is zero, the child key is invalid.
+		if keyBigInt.Sign() == 0 {
+			return nil, nil, ErrInvalidKey
+		}
+
 		// Make sure that child.KeyData is 32 bytes of data even if the value is represented with less bytes.
 		// When we derive a child of this key, we call splitHMAC that does a sha512 of a seed that is:
 		// - 1 byte with 0x00
@@ -199,6 +213,12 @@ func (k *ExtendedKey) ChildWithIL(i uint32) (*big.Int, *ExtendedKey, error) {
 
 		// childKey = serP(point(parse256(IL)) + parentKey)
 		childX, childY := k.curve.Add(keyx, keyy, pubKey.X(), pubKey.Y())
+
+		// Per BIP32: if the resulting point is the point at infinity, the child key is invalid.
+		if childX.Sign() == 0 && childY.Sign() == 0 {
+			return nil, nil, ErrInvalidKey
+		}
+
 		pk := secp256k1.NewPublicKey(asFV(childX), asFV(childY))
 		child.KeyData = pk.SerializeCompressed()
 		child.Version = k.Version.ToPublic()
@@ -317,13 +337,14 @@ func (k *ExtendedKey) pubKeyBytes() []byte {
 	return serializeCompressedEcdsa(&ecdsa.PublicKey{Curve: k.curve, X: pkx, Y: pky})
 }
 
-// ToECDSA returns the key data as ecdsa.PrivateKey
-func (k *ExtendedKey) ToECDSA() *ecdsa.PrivateKey {
+// ToECDSA returns the key data as ecdsa.PrivateKey.
+// Returns an error if the key is not a private key.
+func (k *ExtendedKey) ToECDSA() (*ecdsa.PrivateKey, error) {
 	if !k.IsPrivate() {
-		panic("key is not a private key")
+		return nil, ErrInvalidKey
 	}
 	privKey := secp256k1.PrivKeyFromBytes(k.KeyData)
-	return privKey.ToECDSA()
+	return privKey.ToECDSA(), nil
 }
 
 // ToPublicECDSA returns a ecdsa.PublicKey for the current key

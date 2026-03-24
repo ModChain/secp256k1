@@ -42,6 +42,7 @@ func paddedAppend(size int, dst, src []byte) []byte {
 			// need to grow (=reallocate) dst, prepare for receive src as well
 			ndst := make([]byte, dstl+appd, dstl+appd+len(src))
 			copy(ndst, dst)
+			dst = ndst
 		}
 	}
 	return append(dst, src...)

@@ -360,7 +360,6 @@ func zeroArray32(b *[32]byte) {
 func (s *ModNScalar) SetByteSlice(b []byte) bool {
 	var b32 [32]byte
 	b = b[:constantTimeMin(uint32(len(b)), 32)]
-	copy(b32[:], b32[:32-len(b)])
 	copy(b32[32-len(b):], b)
 	result := s.SetBytes(&b32)
 	zeroArray32(&b32)

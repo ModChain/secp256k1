@@ -47,7 +47,7 @@ const (
 type Signature struct {
 	r ModNScalar
 	s ModNScalar
-	v byte // recovery code, or 0xff if the object was instanciated with NewSignature
+	v byte // recovery code, or 0xff if the object was instantiated with NewSignature
 }
 
 // NewSignature instantiates a new signature given some r and s values.
@@ -56,8 +56,11 @@ func NewSignature(r, s *ModNScalar) *Signature {
 }
 
 // NewSignatureWithRecoveryCode instantiates a new signature given some r and s values and a
-// recovery code.
+// recovery code. The recovery code must be in the range [0, 3].
 func NewSignatureWithRecoveryCode(r, s *ModNScalar, v byte) *Signature {
+	if v > 3 {
+		panic("recovery code must be in the range [0, 3]")
+	}
 	return &Signature{*r, *s, v}
 }
 
@@ -72,11 +75,12 @@ func (sig *Signature) S() ModNScalar {
 }
 
 // RecoveryCode returns the recovery byte of the signature that can be used to determine the original signing public key.
-func (sig *Signature) RecoveryCode() byte {
+// Returns an error if the signature was created without a recovery code.
+func (sig *Signature) RecoveryCode() (byte, error) {
 	if sig.v == 0xff {
-		panic("attempting to fetch recovery code from a signature not including it")
+		return 0, signatureError(ErrSigInvalidRecoveryCode, "signature does not include a recovery code")
 	}
-	return sig.v
+	return sig.v, nil
 }
 
 // Serialize returns the ECDSA signature in the Distinguished Encoding Rules
@@ -1006,7 +1010,7 @@ func (sig *Signature) RecoverPublicKey(hash []byte) (*PublicKey, error) {
 	// 10. Fail if Q is the point at infinity
 
 	if sig.v == 0xff {
-		panic("cannot recover public key without recovery code")
+		return nil, signatureError(ErrSigInvalidRecoveryCode, "cannot recover public key without recovery code")
 	}
 
 	// Step 2.

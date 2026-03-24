@@ -61,6 +61,11 @@ var s256BytePoints = func() func() *bytePointTable {
 
 		// Deserialize the precomputed byte points and set the memory table to
 		// them.
+		const expectedLen = 32 * 256 * 2 * 32 // 32 windows * 256 points * 2 coords * 32 bytes
+		if len(serialized) != expectedLen {
+			panic("precomputed byte points data size mismatch")
+		}
+
 		offset := 0
 		var bytePoints bytePointTable
 		for byteNum := 0; byteNum < len(bytePoints); byteNum++ {

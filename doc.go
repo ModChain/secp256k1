@@ -57,8 +57,7 @@ In addition, it supports a custom "compact" signature format which allows
 efficient recovery of the public key from a given valid signature and message
 hash combination.
 
-A comprehensive suite of tests is provided to ensure proper functionality.
-Finally, a comprehensive suite of tests is provided to provide a high level of
-quality assurance.
+A comprehensive suite of tests is provided to ensure proper functionality and a
+high level of quality assurance.
 */
 package secp256k1
