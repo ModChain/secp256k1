@@ -3,6 +3,8 @@ secp256k1
 
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://godoc.org/github.com/ModChain/secp256k1?status.svg)](https://godoc.org/github.com/ModChain/secp256k1)
+[![Tests](https://github.com/ModChain/secp256k1/actions/workflows/test.yml/badge.svg)](https://github.com/ModChain/secp256k1/actions/workflows/test.yml)
+[![Coverage Status](https://coveralls.io/repos/github/ModChain/secp256k1/badge.svg?branch=master)](https://coveralls.io/github/ModChain/secp256k1?branch=master)
 
 Package secp256k1 implements optimized secp256k1 elliptic curve operations.
 
