@@ -24,8 +24,7 @@ standard.
   - `FieldVal` type for working modulo the secp256k1 field prime
   - `ModNScalar` type for working modulo the secp256k1 group order
 - Elliptic curve operations in Jacobian projective coordinates
-  - Point addition
-  - Point doubling
+  - Point addition and doubling
   - Scalar multiplication with an arbitrary point
   - Scalar multiplication with the base point (group generator)
 - Point decompression from a given x coordinate
@@ -37,25 +36,71 @@ standard.
   - Compact signature format with public key recovery
 - ECDH shared secret generation (RFC 5903)
 
-It also provides an implementation of the Go standard library `crypto/elliptic`
-`Curve` interface via the `S256` function so that it may be used with other
-packages in the standard library such as `crypto/tls`, `crypto/x509`, and
-`crypto/ecdsa`.
+The package also provides an implementation of the Go standard library
+`crypto/elliptic` `Curve` interface via the `S256` function so that it may be
+used with other standard library packages such as `crypto/tls`, `crypto/x509`,
+and `crypto/ecdsa`.
 
 ## Sub Packages
 
 ### schnorr
 
-Package `schnorr` provides Schnorr signing and verification using a custom
-scheme named EC-Schnorr-DCRv0, optimized for the secp256k1 curve. Schnorr
-signatures offer advantages over ECDSA including simpler aggregation, provable
-security under weaker assumptions, and support for faster batch verification.
-
 ```go
 import "github.com/KarpelesLab/secp256k1/schnorr"
 ```
 
+Package `schnorr` provides Schnorr signing and verification optimized for the
+secp256k1 curve, using a scheme named EC-Schnorr-DCRv0.
+
+Schnorr signatures offer several advantages over ECDSA:
+
+- **Linearity** — easier to aggregate for multi-party, threshold, adaptor, and
+  blind signature protocols
+- **Stronger security proofs** — provably secure under SUF-CMA in the Random
+  Oracle Model, meaning the only way to forge a signature is to solve the
+  Elliptic Curve Discrete Logarithm Problem (ECDLP)
+- **Batch verification** — supports faster batch verification unlike standard
+  ECDSA
+- **Compact** — 64-byte signatures (32-byte R.x + 32-byte s)
+
+Key design features of the EC-Schnorr-DCRv0 scheme:
+
+- Signatures of the form `(R, s)` with only the `x` coordinate of `R` encoded
+- Even `y` coordinate enforced for `R` to disambiguate without an extra byte
+- Uses BLAKE-256 with 14 rounds for the challenge hash
+- Deterministic nonces via RFC6979
+
+#### Signing Algorithm
+
+```
+G = curve generator, n = curve order, d = private key, m = message (32 bytes)
+
+1. Generate deterministic nonce k via RFC6979
+2. R = k*G
+3. Negate k if R.y is odd
+4. r = R.x
+5. e = BLAKE-256(r || m)
+6. s = k - e*d mod n
+7. Return (r, s)
+```
+
+#### Verification Algorithm
+
+```
+G = curve generator, n = curve order, p = field size, Q = public key
+
+1. Fail if r >= p or s >= n
+2. e = BLAKE-256(r || m)
+3. R = s*G + e*Q
+4. Fail if R is the point at infinity or R.y is odd
+5. Verified if R.x == r
+```
+
 ### ecckd
+
+```go
+import "github.com/KarpelesLab/secp256k1/ecckd"
+```
 
 Package `ecckd` implements BIP32 hierarchical deterministic key derivation for
 secp256k1 extended keys. It supports:
@@ -64,11 +109,8 @@ secp256k1 extended keys. It supports:
 - Hardened and non-hardened child key derivation
 - Public and private extended key management
 - Base58-encoded serialization and parsing (xpub/xprv format)
-- Conversion to standard `crypto/ecdsa` key types
-
-```go
-import "github.com/KarpelesLab/secp256k1/ecckd"
-```
+- Derivation along arbitrary paths (`Derive`, `DeriveWithIL`)
+- Conversion to standard `crypto/ecdsa` and `secp256k1.PublicKey` types
 
 ## Examples
 
