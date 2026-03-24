@@ -6,10 +6,9 @@
 Package schnorr provides Schnorr signing and verification via secp256k1.
 
 This package provides data structures and functions necessary to produce and
-verify deterministic canonical Schnorr signatures using a scheme named
-EC-Schnorr-DCRv0.  The signatures and implementation are optimized specifically
-for the secp256k1 curve.  See https://www.secg.org/sec2-v2.pdf for details on
-the secp256k1 standard.
+verify deterministic canonical Schnorr signatures.  The signatures and
+implementation are optimized specifically for the secp256k1 curve.  See
+https://www.secg.org/sec2-v2.pdf for details on the secp256k1 standard.
 
 It also provides functions to parse and serialize the Schnorr signatures
 according to the specification described in the project README.
@@ -41,7 +40,7 @@ Some of the advantages over ECDSA include:
 
 # Signature Scheme
 
-The EC-Schnorr-DCRv0 scheme has the following key design features:
+The scheme has the following key design features:
 
   - Uses signatures of the form (R, s)
   - Produces 64-byte signatures by only encoding the x coordinate of R

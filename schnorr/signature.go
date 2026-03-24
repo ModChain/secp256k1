@@ -21,13 +21,13 @@ const (
 )
 
 var (
-	// rfc6979ExtraDataV0 is the extra data to feed to RFC6979 when generating
-	// the deterministic nonce for the EC-Schnorr-DCRv0 scheme.  This ensures
-	// the same nonce is not generated for the same message and key as for other
-	// signing algorithms such as ECDSA.
+	// schnorrRFC6979ExtraData is the extra data fed to RFC6979 when generating
+	// the deterministic nonce for Schnorr signatures.  This ensures the same
+	// nonce is not generated for the same message and key as for other signing
+	// algorithms such as ECDSA.
 	//
 	// It is equal to BLAKE-256([]byte("EC-Schnorr-DCRv0")).
-	rfc6979ExtraDataV0 = [32]byte{
+	schnorrRFC6979ExtraData = [32]byte{
 		0x0b, 0x75, 0xf9, 0x7b, 0x60, 0xe8, 0xa5, 0x76,
 		0x28, 0x76, 0xc0, 0x04, 0x82, 0x9e, 0xe9, 0xb9,
 		0x26, 0xfa, 0x6f, 0x0d, 0x2e, 0xea, 0xec, 0x3a,
@@ -63,9 +63,8 @@ func (sig Signature) Serialize() []byte {
 	return b[:]
 }
 
-// ParseSignature parses a signature according to the EC-Schnorr-DCRv0
-// specification and enforces the following additional restrictions specific to
-// secp256k1:
+// ParseSignature parses a signature and enforces the following additional
+// restrictions specific to secp256k1:
 //
 // - The r component must be in the valid range for secp256k1 field elements
 // - The s component must be in the valid range for secp256k1 scalars
@@ -117,9 +116,7 @@ func (sig Signature) IsEqual(otherSig *Signature) bool {
 // error to support better testing while the exported method simply returns a
 // bool indicating success or failure.
 func schnorrVerify(sig *Signature, hash []byte, pubKey *secp256k1.PublicKey) error {
-	// The algorithm for producing a EC-Schnorr-DCRv0 signature is described in
-	// README.md and is reproduced here for reference:
-	//
+	// The Schnorr verification algorithm is as follows:
 	//
 	// 1. Fail if m is not 32 bytes
 	// 2. Fail if Q is not a point on the curve
@@ -232,39 +229,16 @@ func zeroArray(a *[scalarSize]byte) {
 	}
 }
 
-// schnorrSign generates an EC-Schnorr-DCRv0 signature over the secp256k1 curve
-// for the provided hash (which should be the result of hashing a larger
-// message) using the given nonce and private key.  The produced signature is
-// deterministic (same message, nonce, and key yield the same signature) and
-// canonical.
+// schnorrSign generates a Schnorr signature over the secp256k1 curve for the
+// provided hash (which should be the result of hashing a larger message) using
+// the given nonce and private key.  The produced signature is deterministic
+// (same message, nonce, and key yield the same signature) and canonical.
 //
 // WARNING: The hash MUST be 32 bytes and both the nonce and private keys must
 // NOT be 0.  Since this is an internal use function, these preconditions MUST
 // be satisified by the caller.
 func schnorrSign(privKey, nonce *secp256k1.ModNScalar, hash []byte) (*Signature, error) {
-	// The algorithm for producing a EC-Schnorr-DCRv0 signature is described in
-	// README.md and is reproduced here for reference:
-	//
-	// G = curve generator
-	// n = curve order
-	// d = private key
-	// m = message
-	// r, s = signature
-	//
-	// 1. Fail if m is not 32 bytes
-	// 2. Fail if d = 0 or d >= n
-	// 3. Use RFC6979 to generate a deterministic nonce k in [1, n-1]
-	//    parameterized by the private key, message being signed, extra data
-	//    that identifies the scheme, and an iteration count
-	// 4. R = kG
-	// 5. Negate nonce k if R.y is odd (R.y is the y coordinate of the point R)
-	// 6. r = R.x (R.x is the x coordinate of the point R)
-	// 7. e = BLAKE-256(r || m) (Ensure r is padded to 32 bytes)
-	// 8. Repeat from step 3 (with iteration + 1) if e >= n
-	// 9. s = k - e*d mod n
-	// 10. Return (r, s)
-
-	// NOTE: Steps 1-3 are performed by the caller.
+	// NOTE: Steps 1-3 of the signing algorithm are performed by the caller.
 	//
 	// Step 4.
 	//
@@ -318,10 +292,10 @@ func schnorrSign(privKey, nonce *secp256k1.ModNScalar, hash []byte) (*Signature,
 	return NewSignature(r, s), nil
 }
 
-// Sign generates an EC-Schnorr-DCRv0 signature over the secp256k1 curve for the
-// provided hash (which should be the result of hashing a larger message) using
-// the given private key.  The produced signature is deterministic (same message
-// and same key yield the same signature) and canonical.
+// Sign generates a Schnorr signature over the secp256k1 curve for the provided
+// hash (which should be the result of hashing a larger message) using the given
+// private key.  The produced signature is deterministic (same message and same
+// key yield the same signature) and canonical.
 //
 // Note that the current signing implementation has a few remaining variable
 // time aspects which make use of the private key and the generated nonce, which
@@ -329,28 +303,6 @@ func schnorrSign(privKey, nonce *secp256k1.ModNScalar, hash []byte) (*Signature,
 // should not be used in situations where there is the possibility of someone
 // having EM field/cache/etc access.
 func Sign(privKey *secp256k1.PrivateKey, hash []byte) (*Signature, error) {
-	// The algorithm for producing a EC-Schnorr-DCRv0 signature is described in
-	// README.md and is reproduced here for reference:
-	//
-	// G = curve generator
-	// n = curve order
-	// d = private key
-	// m = message
-	// r, s = signature
-	//
-	// 1. Fail if m is not 32 bytes
-	// 2. Fail if d = 0 or d >= n
-	// 3. Use RFC6979 to generate a deterministic nonce k in [1, n-1]
-	//    parameterized by the private key, message being signed, extra data
-	//    that identifies the scheme, and an iteration count
-	// 4. R = kG
-	// 5. Negate nonce k if R.y is odd (R.y is the y coordinate of the point R)
-	// 6. r = R.x (R.x is the x coordinate of the point R)
-	// 7. e = BLAKE-256(r || m) (Ensure r is padded to 32 bytes)
-	// 8. Repeat from step 3 (with iteration + 1) if e >= n
-	// 9. s = k - e*d mod n
-	// 10. Return (r, s)
-
 	// Step 1.
 	//
 	// Fail if m is not 32 bytes
@@ -378,7 +330,7 @@ func Sign(privKey *secp256k1.PrivateKey, hash []byte) (*Signature, error) {
 		// Use RFC6979 to generate a deterministic nonce k in [1, n-1]
 		// parameterized by the private key, message being signed, extra data
 		// that identifies the scheme, and an iteration count
-		k := secp256k1.NonceRFC6979(privKeyBytes[:], hash, rfc6979ExtraDataV0[:],
+		k := secp256k1.NonceRFC6979(privKeyBytes[:], hash, schnorrRFC6979ExtraData[:],
 			nil, iteration)
 
 		// Steps 4-10.

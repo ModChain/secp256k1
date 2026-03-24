@@ -278,7 +278,7 @@ func TestSchnorrSignAndVerify(t *testing.T) {
 			privKeyBytes := hexToBytes(test.key)
 			nonceBytes := hexToBytes(test.nonce)
 			calcNonce := secp256k1.NonceRFC6979(privKeyBytes, hash,
-				rfc6979ExtraDataV0[:], nil, 0)
+				schnorrRFC6979ExtraData[:], nil, 0)
 			calcNonceBytes := calcNonce.Bytes()
 			if !bytes.Equal(calcNonceBytes[:], nonceBytes) {
 				t.Errorf("%s: mismatched test nonce -- expected: %x, given: %x",

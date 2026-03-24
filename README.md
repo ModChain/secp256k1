@@ -50,7 +50,7 @@ import "github.com/KarpelesLab/secp256k1/schnorr"
 ```
 
 Package `schnorr` provides Schnorr signing and verification optimized for the
-secp256k1 curve, using a scheme named EC-Schnorr-DCRv0.
+secp256k1 curve.
 
 Schnorr signatures offer several advantages over ECDSA:
 
@@ -63,7 +63,7 @@ Schnorr signatures offer several advantages over ECDSA:
   ECDSA
 - **Compact** — 64-byte signatures (32-byte R.x + 32-byte s)
 
-Key design features of the EC-Schnorr-DCRv0 scheme:
+Key design features of the scheme:
 
 - Signatures of the form `(R, s)` with only the `x` coordinate of `R` encoded
 - Even `y` coordinate enforced for `R` to disambiguate without an extra byte

@@ -13,9 +13,9 @@ import (
 	"github.com/KarpelesLab/secp256k1/schnorr"
 )
 
-// This example demonstrates signing a message with the EC-Schnorr-DCRv0 scheme
-// using a secp256k1 private key that is first parsed from raw bytes and
-// serializing the generated signature.
+// This example demonstrates signing a message with a Schnorr signature using a
+// secp256k1 private key that is first parsed from raw bytes and serializing the
+// generated signature.
 func ExampleSign() {
 	// Decode a hex-encoded private key.
 	pkBytes, err := hex.DecodeString("22a47fa09a223f2aa079edf85a7c2d4f8720ee6" +
@@ -48,9 +48,9 @@ func ExampleSign() {
 	// Signature Verified? true
 }
 
-// This example demonstrates verifying an EC-Schnorr-DCRv0 signature against a
-// public key that is first parsed from raw bytes.  The signature is also parsed
-// from raw bytes.
+// This example demonstrates verifying a Schnorr signature against a public key
+// that is first parsed from raw bytes.  The signature is also parsed from raw
+// bytes.
 func ExampleSignature_Verify() {
 	// Decode hex-encoded serialized public key.
 	pubKeyBytes, err := hex.DecodeString("02a673638cb9587cb68ea08dbef685c6f2d" +
